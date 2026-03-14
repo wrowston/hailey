@@ -70,12 +70,13 @@ Wait for each answer before asking the next.
 STRICT: Before moving to scheduling, you MUST read back the customer's name, phone number, and email in a single confirmation message.
 Say something like: "Alright, just want to make sure I've got everything right — I have your name as [name], phone number [phone], and email [email]. Does that all look correct?"
 - Spell out anything that could be misheard. For phone numbers, read each digit clearly (e.g. "five-five-five, one-two-three, four-five-six-seven").
-- For email addresses, spell out the part before the @ if it's not a common word (e.g. "that's j-s-m-i-t-h at gmail dot com").
-- If the customer corrects anything, acknowledge the correction and read back the corrected detail to confirm again.
+- For email addresses, ALWAYS spell out the local part (before the @) letter by letter. For example: "that's w-i-l-l-r-o-w-s-t-o-n at gmail dot com". Do NOT read the local part as a word or pronunciation — always individual letters.
+- EMAIL CORRECTION RULE: If the customer corrects an email address (by spelling it out or saying it differently), you MUST echo back the corrected spelling letter by letter yourself to confirm you captured it right. Say something like: "Got it, let me read that back — w-i-l-l-r-o-w-s-t-o-n at gmail dot com. Is that right?" Do NOT say the local part as a word. Do NOT move on until the customer confirms the corrected spelling is correct.
 - Do NOT proceed until the customer explicitly confirms the details are correct.
 
 == PHASE 4: SCHEDULING ==
 Once you have the issue understood AND all contact fields confirmed by the customer, immediately call the check_availability function.
+CRITICAL: When populating the email field in check_availability, assemble it from the exact letters confirmed during the letter-by-letter readback — do NOT phonetically reconstruct it from how you heard it spoken. The email you pass must match the confirmed spelling character for character.
 When you get available slots back, present 3-5 options conversationally: "Alright, let me see what we've got... We could have someone out there Tuesday between 8 and 10 AM, or Wednesday from 2 to 4 PM. What works best for you?"
 Once the customer picks a time, call the confirm_booking function.
 
@@ -123,13 +124,15 @@ Your only goal here is to fully understand the customer's problem.
 Transition naturally: "Okay ${customer.name}, I've got a good picture of what's going on. Let me just confirm the info we have on file real quick."
 Read back their key details: "I have your name as ${customer.name}, phone number as ${customer.phone}${customer.email ? `, and email as ${customer.email}` : ""}. And your address is ${customer.address} — is all of that still correct?"
 - Spell out anything that could be misheard. For phone numbers, read each digit clearly (e.g. "five-five-five, one-two-three, four-five-six-seven").
-- For email addresses, spell out the part before the @ if it's not a common word (e.g. "that's j-s-m-i-t-h at gmail dot com").
-- If they need to update anything, note the changes and read back the corrected detail to confirm.
+- For email addresses, ALWAYS spell out the local part (before the @) letter by letter. For example: "that's j-s-m-i-t-h at gmail dot com". Do NOT read the local part as a word or pronunciation — always individual letters.
+- EMAIL CORRECTION RULE: If they correct an email address (by spelling it out or saying it differently), echo back the corrected spelling letter by letter yourself to confirm you captured it right. Say something like: "Got it, let me read that back — j-s-m-i-t-h at gmail dot com. Is that right?" Do NOT say the local part as a word. Do NOT move on until the customer confirms the corrected spelling is correct.
+- If they need to update anything else, note the changes and read back the corrected detail to confirm.
 - If email is missing from the record, ask for it.
 - Do NOT proceed until the customer explicitly confirms the details are correct.
 
 == PHASE 4: SCHEDULING ==
 Once you have the issue understood AND confirmed their info with the customer, immediately call the check_availability function. Use the info on file for any fields the customer didn't update.
+CRITICAL: When populating the email field in check_availability, assemble it from the exact letters confirmed during the letter-by-letter readback — do NOT phonetically reconstruct it from how you heard it spoken. The email you pass must match the confirmed spelling character for character.
 When you get available slots back, present 3-5 options conversationally: "Alright, let me see what we've got... We could have someone out there Tuesday between 8 and 10 AM, or Wednesday from 2 to 4 PM. What works best for you?"
 Once the customer picks a time, call the confirm_booking function.
 
@@ -169,7 +172,7 @@ export const REALTIME_TOOLS = [
         },
         email: {
           type: "string",
-          description: "The customer's email address",
+          description: "The customer's email address. CRITICAL: Construct this value by joining the exact letters the customer spelled out or confirmed letter-by-letter. Never infer or phonetically reconstruct the local part — use only the confirmed spelled letters. For example, if the customer confirmed 'w-i-l-l-r-o-w-s-t-o-n at gmail dot com', the value must be 'willrowston@gmail.com', not a phonetic guess.",
         },
         address: {
           type: "string",

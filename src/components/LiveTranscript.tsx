@@ -46,7 +46,7 @@ export default function LiveTranscript({ transcript }: LiveTranscriptProps) {
                     entry.role === "user" ? "text-cyan-400" : "text-purple-400"
                   }`}
                 >
-                  {entry.role === "user" ? "You" : "Agent Alex"}
+                  {entry.role === "user" ? "You" : "Hailey"}
                 </span>
               </div>
               <p>{entry.text}</p>
