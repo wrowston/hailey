@@ -11,11 +11,15 @@ export interface TranscriptEntry {
 }
 
 export interface CallData {
+  name?: string;
   phone_number?: string;
   email?: string;
+  address?: string;
   issue?: string;
+  urgency?: "emergency" | "urgent" | "routine";
   urgency_score?: number;
   urgency_reason?: string;
+  likely_job_type?: string;
   summary?: string;
 }
 
@@ -186,11 +190,15 @@ export function useVoiceSession() {
                 action: "end",
                 id: currentCallId,
                 data: {
+                  name: args.name,
                   phone_number: args.phone_number,
                   email: args.email,
+                  address: args.address,
                   issue: args.issue,
+                  urgency: args.urgency,
                   urgency_score: args.urgency_score,
                   urgency_reason: args.urgency_reason,
+                  likely_job_type: args.likely_job_type,
                   summary: args.summary,
                 },
               }),
@@ -248,12 +256,6 @@ export function useVoiceSession() {
       micBufferRef.current = [];
       playbackQueueRef.current = [];
       playbackOffsetRef.current = 0;
-
-      await fetch("/api/calls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", id }),
-      });
 
       // Start mic capture and token fetch in parallel (xAI best practice)
       const [stream, sessionRes] = await Promise.all([
@@ -398,22 +400,6 @@ export function useVoiceSession() {
     setIsAgentSpeaking(false);
     setIsUserSpeaking(false);
 
-    if (callId) {
-      const transcriptJson = JSON.stringify(transcript);
-      await fetch("/api/calls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "end",
-          id: callId,
-          data: {
-            transcript: transcriptJson,
-            ...(callData || {}),
-          },
-        }),
-      });
-    }
-
     if (inputProcessorRef.current) {
       inputProcessorRef.current.disconnect();
       inputProcessorRef.current = null;
@@ -441,7 +427,7 @@ export function useVoiceSession() {
     playbackOffsetRef.current = 0;
 
     setCallState("ended");
-  }, [callId, transcript, callData]);
+  }, []);
 
   const resetCall = useCallback(() => {
     setCallState("idle");

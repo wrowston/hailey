@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllCalls, createCall, endCall } from "@/lib/db";
+import {
+  lookupCustomerTool,
+  saveIntakeTool,
+} from "@/mastra/tools/intake-tools";
+import convexClient from "@/lib/convex";
+import { api } from "../../../../convex/_generated/api";
 
 export async function GET() {
   try {
-    const calls = getAllCalls();
-    return NextResponse.json({ calls });
+    const serviceRequests = await convexClient.query(
+      api.serviceRequests.list,
+      {},
+    );
+    return NextResponse.json({ serviceRequests });
   } catch (error) {
-    console.error("Error fetching calls:", error);
+    console.error("Error fetching service requests:", error);
     return NextResponse.json(
-      { error: "Failed to fetch calls" },
-      { status: 500 }
+      { error: "Failed to fetch service requests" },
+      { status: 500 },
     );
   }
 }
@@ -17,16 +25,43 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, id, data } = body;
+    const { action, data } = body;
 
     if (action === "create") {
-      const call = createCall(id);
-      return NextResponse.json({ call });
+      return NextResponse.json({ ok: true });
     }
 
     if (action === "end") {
-      const call = endCall(id, data);
-      return NextResponse.json({ call });
+      const phone = data.phone_number;
+      let existingCustomerId: string | undefined;
+
+      if (phone) {
+        const lookupResult = await lookupCustomerTool.execute!({
+          phone,
+        });
+        if (lookupResult && lookupResult.found && lookupResult.customer) {
+          existingCustomerId = lookupResult.customer.id;
+        }
+      }
+
+      const notes = [data.summary, data.urgency_reason]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const result = await saveIntakeTool.execute!({
+        existingCustomerId,
+        name: data.name,
+        phone: data.phone_number,
+        email: data.email,
+        address: data.address,
+        issueSummary: data.issue,
+        notes: notes || undefined,
+        urgency: data.urgency,
+        urgencyScore: data.urgency_score,
+        likelyJobType: data.likely_job_type,
+      });
+
+      return NextResponse.json(result);
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -34,7 +69,7 @@ export async function POST(request: NextRequest) {
     console.error("Error with call:", error);
     return NextResponse.json(
       { error: "Failed to process call" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
