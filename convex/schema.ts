@@ -40,6 +40,7 @@ export default defineSchema({
 
   technicians: defineTable({
     name: v.string(),
+    email: v.optional(v.string()),
     skills: v.array(v.string()),
     status: v.union(
       v.literal("available"),
@@ -150,6 +151,35 @@ export default defineSchema({
     .index("by_job", ["relatedJobId"])
     .index("by_messageType", ["messageType"])
     .index("by_createdAt", ["createdAt"]),
+
+  scheduledServices: defineTable({
+    jobId: v.id("jobs"),
+    serviceRequestId: v.id("serviceRequests"),
+    customerId: v.id("customers"),
+    customerName: v.string(),
+    customerPhone: v.string(),
+    customerAddress: v.string(),
+    technicianId: v.id("technicians"),
+    technicianName: v.string(),
+    category: v.string(),
+    priority: v.union(
+      v.literal("emergency"),
+      v.literal("urgent"),
+      v.literal("routine"),
+    ),
+    issueSummary: v.string(),
+    scheduledStart: v.number(),
+    scheduledEnd: v.number(),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_scheduledStart", ["scheduledStart"])
+    .index("by_status", ["status"])
+    .index("by_technicianId", ["technicianId"]),
 
   simulationEvents: defineTable({
     type: v.union(

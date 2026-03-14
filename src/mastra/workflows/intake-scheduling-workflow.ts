@@ -54,13 +54,21 @@ const saveIntakeStep = createStep({
       likelyJobType: inputData.likelyJobType,
     });
 
-    return {
+    const output = {
       customerId: result.customerId,
       serviceRequestId: result.serviceRequestId,
       isReturningCustomer: result.isReturningCustomer,
       urgency: inputData.urgency,
       likelyJobType: inputData.likelyJobType,
     };
+
+    console.log("[workflow:save-intake] Step complete", {
+      customerId: output.customerId,
+      serviceRequestId: output.serviceRequestId,
+      isReturningCustomer: output.isReturningCustomer,
+    });
+
+    return output;
   },
 });
 
@@ -87,12 +95,19 @@ const findAvailabilityStep = createStep({
       urgency: inputData.urgency,
     });
 
-    return {
+    const output = {
       serviceRequestId: inputData.serviceRequestId,
       urgency: inputData.urgency,
       likelyJobType: inputData.likelyJobType,
       availableSlots: result.availableSlots,
     };
+
+    console.log("[workflow:find-availability] Step complete", {
+      serviceRequestId: output.serviceRequestId,
+      slotsFound: output.availableSlots.length,
+    });
+
+    return output;
   },
 });
 
@@ -120,10 +135,19 @@ const awaitConfirmationStep = createStep({
   }),
   execute: async ({ inputData, resumeData, suspend }) => {
     if (!resumeData?.selectedSlot) {
+      console.log("[workflow:await-confirmation] Suspending — waiting for customer slot selection", {
+        serviceRequestId: inputData.serviceRequestId,
+        slotsOffered: inputData.availableSlots.length,
+      });
       return await suspend({
         availableSlots: inputData.availableSlots,
       });
     }
+
+    console.log("[workflow:await-confirmation] Step complete — slot selected", {
+      serviceRequestId: inputData.serviceRequestId,
+      selectedSlot: resumeData.selectedSlot,
+    });
 
     return {
       serviceRequestId: inputData.serviceRequestId,
@@ -165,7 +189,7 @@ const bookAppointmentStep = createStep({
       jobType: inputData.likelyJobType,
     });
 
-    return {
+    const output = {
       jobId: result.jobId,
       technicianName: result.technicianName,
       scheduledStart: result.scheduledStart,
@@ -174,6 +198,16 @@ const bookAppointmentStep = createStep({
       displayEnd: selectedSlot.displayEnd,
       date: selectedSlot.date,
     };
+
+    console.log("[workflow:book-appointment] Step complete", {
+      jobId: output.jobId,
+      technicianName: output.technicianName,
+      date: output.date,
+      displayStart: output.displayStart,
+      displayEnd: output.displayEnd,
+    });
+
+    return output;
   },
 });
 

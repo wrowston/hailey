@@ -232,6 +232,33 @@ export const bookAppointmentTool = createTool({
       status: "scheduled",
     });
 
+    const serviceRequest = await convexClient.query(
+      api.serviceRequests.getById,
+      { id: input.serviceRequestId as never },
+    );
+
+    const customer = serviceRequest
+      ? await convexClient.query(api.customers.getById, {
+          id: serviceRequest.customerId,
+        })
+      : null;
+
+    await convexClient.mutation(api.scheduledServices.create, {
+      jobId: jobId as never,
+      serviceRequestId: input.serviceRequestId as never,
+      customerId: (serviceRequest?.customerId ?? ("" as never)) as never,
+      customerName: customer?.name ?? "Unknown",
+      customerPhone: customer?.phone ?? "",
+      customerAddress: customer?.address ?? "",
+      technicianId: input.technicianId as never,
+      technicianName: tech?.name ?? "Unknown",
+      category: input.jobType,
+      priority: input.urgency,
+      issueSummary: serviceRequest?.issueSummary ?? "",
+      scheduledStart: input.startTime,
+      scheduledEnd: input.endTime,
+    });
+
     return {
       jobId,
       technicianName: tech?.name ?? "Unknown",

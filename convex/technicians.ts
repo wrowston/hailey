@@ -28,6 +28,7 @@ export const listAvailable = query({
 export const create = mutation({
   args: {
     name: v.string(),
+    email: v.optional(v.string()),
     skills: v.array(v.string()),
     status: v.union(
       v.literal("available"),

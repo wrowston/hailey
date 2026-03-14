@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (action === "check") {
       const {
         name,
-        phone,
+        phone_number: phone,
         email,
         address,
         issue,
