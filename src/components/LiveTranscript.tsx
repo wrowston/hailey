@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { TranscriptEntry } from "@/hooks/useWebRTCSession";
+import { TranscriptEntry } from "@/hooks/useVoiceSession";
 
 interface LiveTranscriptProps {
   transcript: TranscriptEntry[];

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import UrgencyGauge from "./UrgencyGauge";
-import { CallData, TranscriptEntry } from "@/hooks/useWebRTCSession";
+import { CallData, TranscriptEntry } from "@/hooks/useVoiceSession";
 import Link from "next/link";
 
 interface CallSummaryProps {
