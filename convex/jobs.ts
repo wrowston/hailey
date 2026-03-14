@@ -30,6 +30,29 @@ export const listByTechnician = query({
   },
 });
 
+export const listByTechnicianInRange = query({
+  args: {
+    technicianId: v.id("technicians"),
+    rangeStart: v.number(),
+    rangeEnd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const jobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_technician", (q) =>
+        q.eq("technicianId", args.technicianId),
+      )
+      .collect();
+    return jobs.filter(
+      (j) =>
+        j.status !== "completed" &&
+        j.status !== "cancelled" &&
+        j.scheduledEnd > args.rangeStart &&
+        j.scheduledStart < args.rangeEnd,
+    );
+  },
+});
+
 export const getById = query({
   args: { id: v.id("jobs") },
   handler: async (ctx, args) => {

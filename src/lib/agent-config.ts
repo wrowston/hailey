@@ -7,7 +7,10 @@ Your job is to:
 4. Naturally collect their phone number during the conversation
 5. Naturally collect their email address during the conversation
 6. Naturally collect their street address (including city, state, and zip) during the conversation — you need this so a technician can be dispatched
-7. Once you have a clear understanding of the issue AND have collected their name, phone, email, and address, determine urgency and call the save_call_data function
+7. Once you have a clear understanding of the issue AND have collected their name, phone, email, and address, determine urgency and call the check_availability function
+8. When you receive the available time slots back, present 3-5 of the best options to the customer in a conversational way, like: "Okay great, I've got a few openings for you. We could have someone out there Tuesday between 8 and 10 AM, or Wednesday from 2 to 4 PM. What works best for you?"
+9. Once the customer picks a time, call the confirm_booking function with the run_id you received and the slot they chose
+10. After the booking is confirmed, tell the customer the technician name, date, and time, thank them warmly, and wrap up the call
 
 Conversation guidelines:
 - Be conversational and natural — this is a phone call, not a text chat
@@ -22,6 +25,8 @@ Conversation guidelines:
 - Pause naturally between thoughts. Don't rush through your responses
 - Use "um" or "let me pull that up" type phrases sparingly to sound human
 - Take a beat before responding, as if you're actually thinking about what the customer said
+- When presenting available times, sound helpful and flexible — "Let me check what we've got available for you..."
+- If the customer asks for a time that isn't available, suggest the closest alternatives
 
 Urgency scoring guide (1-10):
 - 9-10 (emergency): Gas leak, flooding, no heat in freezing weather, sewage backup, carbon monoxide concern
@@ -33,14 +38,14 @@ Urgency scoring guide (1-10):
 Job type classification — determine the likely type based on the issue:
 plumbing, drain cleaning, water heater, pipe repair, HVAC repair, HVAC maintenance, AC installation, furnace repair, sewer line, gas line, fixture installation
 
-When you have collected ALL required information (name, phone, email, address, issue understanding), call save_call_data immediately. After calling the function, thank the customer, let them know a technician will be in touch, and say goodbye warmly.`;
+When you have collected ALL required information (name, phone, email, address, issue understanding), call check_availability immediately. Do NOT end the call until the customer has confirmed a booking or explicitly declined to schedule.`;
 
 export const REALTIME_TOOLS = [
   {
     type: "function" as const,
-    name: "save_call_data",
+    name: "check_availability",
     description:
-      "Save the collected call information. Call this ONLY when you have gathered the customer's name, phone number, email, address, and understand their issue clearly enough to assess urgency.",
+      "Save the collected intake data AND check technician availability. Call this ONLY when you have gathered the customer's name, phone number, email, address, and understand their issue clearly enough to assess urgency. Returns available appointment time slots.",
     parameters: {
       type: "object",
       properties: {
@@ -89,7 +94,7 @@ export const REALTIME_TOOLS = [
         summary: {
           type: "string",
           description:
-            "A professional summary of the entire call including key details and next steps",
+            "A professional summary of the entire call including key details",
         },
       },
       required: [
@@ -104,6 +109,68 @@ export const REALTIME_TOOLS = [
         "likely_job_type",
         "summary",
       ],
+    },
+  },
+  {
+    type: "function" as const,
+    name: "confirm_booking",
+    description:
+      "Confirm the customer's selected appointment time. Call this after the customer has chosen one of the available time slots. Pass the run_id from the check_availability response and the selected slot details.",
+    parameters: {
+      type: "object",
+      properties: {
+        run_id: {
+          type: "string",
+          description:
+            "The run_id returned from the check_availability call",
+        },
+        selected_slot: {
+          type: "object",
+          description: "The time slot the customer selected",
+          properties: {
+            technicianId: {
+              type: "string",
+              description: "The technician ID for the selected slot",
+            },
+            technicianName: {
+              type: "string",
+              description: "The technician name for the selected slot",
+            },
+            date: {
+              type: "string",
+              description: "The date in YYYY-MM-DD format",
+            },
+            startTime: {
+              type: "number",
+              description: "Start time as unix timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End time as unix timestamp in milliseconds",
+            },
+            displayStart: {
+              type: "string",
+              description:
+                "Human-readable start time, e.g. '2:00 PM'",
+            },
+            displayEnd: {
+              type: "string",
+              description:
+                "Human-readable end time, e.g. '4:00 PM'",
+            },
+          },
+          required: [
+            "technicianId",
+            "technicianName",
+            "date",
+            "startTime",
+            "endTime",
+            "displayStart",
+            "displayEnd",
+          ],
+        },
+      },
+      required: ["run_id", "selected_slot"],
     },
   },
 ];

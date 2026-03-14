@@ -4,10 +4,13 @@ import { PinoLogger } from '@mastra/loggers';
 import { ConvexStore } from '@mastra/convex';
 import { Observability, CloudExporter, SensitiveDataFilter } from '@mastra/observability';
 import { intakeAgent } from './agents/intake-agent';
+import { schedulingAgent } from './agents/scheduling-agent';
+import { intakeSchedulingWorkflow } from './workflows/intake-scheduling-workflow';
 
 
 export const mastra = new Mastra({
-  agents: { intakeAgent },
+  agents: { intakeAgent, schedulingAgent },
+  workflows: { intakeSchedulingWorkflow },
   storage: new ConvexStore({
     id: 'convex-storage',
     deploymentUrl: process.env.CONVEX_URL!,
