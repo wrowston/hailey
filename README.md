@@ -1,36 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🤖 AI Phone Agent
 
-## Getting Started
+A real-time AI-powered phone call simulator built with **Next.js**, **Mastra**, and **OpenAI's Realtime API**. Users can have natural voice conversations with an AI customer service agent that collects information and assesses urgency.
 
-First, run the development server:
+![Built with Next.js](https://img.shields.io/badge/Next.js-15-black)
+![OpenAI Realtime](https://img.shields.io/badge/OpenAI-Realtime_API-green)
+![Mastra](https://img.shields.io/badge/Mastra-AI_Agent-purple)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Features
+
+- **🎤 Real-time Voice Conversation** — Talk naturally with the AI agent via WebRTC
+- **📞 Phone Call Simulation** — Rings twice, agent picks up, full call experience
+- **🧠 Smart Information Extraction** — Agent naturally collects phone number, email, and issue
+- **🔥 Urgency Scoring** — AI determines and scores urgency (1-10) with reasoning
+- **📊 Live Dashboard** — View all calls with summaries, urgency gauges, and transcripts
+- **✨ Beautiful Animations** — Framer Motion powered UI with glass-morphism design
+
+## 🏗️ Tech Stack
+
+| Technology | Purpose |
+|-----------|---------|
+| **Next.js 15** | Full-stack React framework |
+| **Mastra** | AI agent configuration |
+| **OpenAI Realtime API** | WebRTC voice conversation with GPT-4o |
+| **SQLite** | Call data persistence |
+| **Framer Motion** | Animations & transitions |
+| **Tailwind CSS** | Styling |
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- OpenAI API key with access to `gpt-4o-realtime-preview`
+- A microphone
+
+### Setup
+
+1. **Clone and install**
+   ```bash
+   cd ai-phone-agent
+   npm install
+   ```
+
+2. **Set your OpenAI API key**
+   ```bash
+   # Edit .env.local and add your key
+   OPENAI_API_KEY=sk-your-key-here
+   ```
+
+3. **Run the dev server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
+
+## 📱 How It Works
+
+### Call Flow
+```
+User clicks "Generate Call"
+       ↓
+Phone rings twice (ring animation)
+       ↓
+AI Agent picks up & greets user
+       ↓
+User speaks → Browser mic captures audio
+       ↓
+Audio streams via WebRTC to OpenAI Realtime API
+       ↓
+GPT-4o processes & responds in real-time
+       ↓
+AI voice streams back to browser
+       ↓
+Agent collects: phone, email, issue
+       ↓
+Agent scores urgency (1-10)
+       ↓
+Call ends → Data saved to SQLite
+       ↓
+Dashboard shows summary & urgency score
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Architecture
+```
+Browser ←→ WebRTC ←→ OpenAI Realtime API (GPT-4o)
+   ↕                         ↕
+Next.js API Routes    Function Calling (save_call_data)
+   ↕
+SQLite Database
+   ↕
+Dashboard (real-time updates)
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📊 Dashboard
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The dashboard (`/dashboard`) shows:
+- **Stats Overview** — Total calls, completed, average urgency, high urgency count
+- **Urgency Distribution** — Visual bar chart of urgency scores
+- **Call Cards** — Expandable cards with:
+  - Urgency gauge (color-coded circular progress)
+  - Contact info (phone, email)
+  - Issue description
+  - Full call summary
+  - Complete transcript
 
-## Learn More
+## 🎨 UI Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Dark theme** with gradient mesh background
+- **Glass-morphism** cards with frosted glass effect
+- **Animated waveforms** during conversation
+- **Pulse animations** during ringing
+- **Staggered card entrance** on dashboard
+- **Smooth state transitions** between call phases
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── page.tsx                    # Call screen
+│   ├── dashboard/page.tsx          # Dashboard
+│   ├── api/
+│   │   ├── session/route.ts        # OpenAI ephemeral token
+│   │   └── calls/route.ts          # Call CRUD operations
+│   ├── layout.tsx
+│   └── globals.css
+├── components/
+│   ├── CallScreen.tsx              # Main call orchestrator
+│   ├── PhoneRinging.tsx            # Ring animation
+│   ├── ActiveCall.tsx              # Active call UI
+│   ├── WaveformVisualizer.tsx      # Audio waveform bars
+│   ├── LiveTranscript.tsx          # Real-time transcript
+│   ├── CallSummary.tsx             # Post-call summary
+│   ├── CallCard.tsx                # Dashboard call card
+│   └── UrgencyGauge.tsx            # Circular urgency meter
+├── hooks/
+│   └── useWebRTCSession.ts         # WebRTC + Realtime API hook
+└── lib/
+    ├── agent-config.ts             # Agent prompt + tool definitions
+    └── db.ts                       # SQLite operations
+```
 
-## Deploy on Vercel
+## 🔑 Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | Your OpenAI API key (needs Realtime API access) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT
