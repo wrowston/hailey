@@ -21,6 +21,13 @@ export interface CallData {
   urgency_reason?: string;
   likely_job_type?: string;
   summary?: string;
+  booking?: {
+    jobId: string;
+    technicianName: string;
+    date: string;
+    displayStart: string;
+    displayEnd: string;
+  };
 }
 
 export type CallState = "idle" | "ringing" | "connecting" | "active" | "ending" | "ended";
@@ -84,6 +91,8 @@ export function useVoiceSession() {
   const micBufferRef = useRef<Int16Array[]>([]);
   const playbackQueueRef = useRef<Float32Array[]>([]);
   const playbackOffsetRef = useRef(0);
+  const workflowRunIdRef = useRef<string | null>(null);
+  const availableSlotsRef = useRef<Record<string, unknown>[]>([]);
 
   const sendWsMessage = useCallback((event: Record<string, unknown>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -175,52 +184,140 @@ export function useVoiceSession() {
         }
 
         case "response.function_call_arguments.done": {
-          const name = msg.name as string;
+          const fnName = msg.name as string;
           const args = JSON.parse(msg.arguments as string);
           const callItemId = msg.call_id as string;
 
-          if (name === "save_call_data") {
-            console.log("Agent called save_call_data:", args);
+          if (fnName === "check_availability") {
+            console.log("Agent called check_availability:", args);
             setCallData(args as CallData);
 
-            fetch("/api/calls", {
+            fetch("/api/schedule", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                action: "end",
-                id: currentCallId,
-                data: {
-                  name: args.name,
-                  phone_number: args.phone_number,
-                  email: args.email,
-                  address: args.address,
-                  issue: args.issue,
-                  urgency: args.urgency,
-                  urgency_score: args.urgency_score,
-                  urgency_reason: args.urgency_reason,
-                  likely_job_type: args.likely_job_type,
-                  summary: args.summary,
-                },
+                action: "check",
+                data: args,
               }),
-            });
+            })
+              .then((res) => res.json())
+              .then((result) => {
+                if (result.runId) {
+                  workflowRunIdRef.current = result.runId;
+                }
+                if (result.availableSlots) {
+                  availableSlotsRef.current = result.availableSlots;
+                }
 
-            sendWsMessage({
-              type: "conversation.item.create",
-              item: {
-                type: "function_call_output",
-                call_id: callItemId,
-                output: JSON.stringify({
-                  success: true,
-                  message:
-                    "Call data saved successfully. Please wrap up the call with the customer.",
-                }),
-              },
-            });
+                sendWsMessage({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: callItemId,
+                    output: JSON.stringify({
+                      success: true,
+                      run_id: result.runId,
+                      available_slots: result.availableSlots ?? [],
+                      message:
+                        "Here are the available appointment slots. Present these options to the customer and ask which time works best for them.",
+                    }),
+                  },
+                });
 
-            sendWsMessage({
-              type: "response.create",
-              response: { modalities: ["text", "audio"] },
-            });
+                sendWsMessage({
+                  type: "response.create",
+                  response: { modalities: ["text", "audio"] },
+                });
+              })
+              .catch((err) => {
+                console.error("check_availability error:", err);
+                sendWsMessage({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: callItemId,
+                    output: JSON.stringify({
+                      success: false,
+                      message:
+                        "Sorry, I was unable to check availability right now. Let the customer know we will call them back to schedule.",
+                    }),
+                  },
+                });
+                sendWsMessage({
+                  type: "response.create",
+                  response: { modalities: ["text", "audio"] },
+                });
+              });
+          }
+
+          if (fnName === "confirm_booking") {
+            console.log("Agent called confirm_booking:", args);
+
+            const runId = args.run_id || workflowRunIdRef.current;
+            const selectedSlot = args.selected_slot;
+
+            fetch("/api/schedule", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "confirm",
+                runId,
+                selectedSlot,
+              }),
+            })
+              .then((res) => res.json())
+              .then((result) => {
+                if (result.status === "success" && result.result) {
+                  setCallData((prev) => ({
+                    ...prev,
+                    booking: {
+                      jobId: result.result.jobId,
+                      technicianName: result.result.technicianName,
+                      date: result.result.date,
+                      displayStart: result.result.displayStart,
+                      displayEnd: result.result.displayEnd,
+                    },
+                  }));
+                }
+
+                sendWsMessage({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: callItemId,
+                    output: JSON.stringify({
+                      success: true,
+                      booking: result.result ?? null,
+                      message:
+                        "Appointment booked successfully! Confirm the details with the customer and wrap up the call warmly.",
+                    }),
+                  },
+                });
+
+                sendWsMessage({
+                  type: "response.create",
+                  response: { modalities: ["text", "audio"] },
+                });
+              })
+              .catch((err) => {
+                console.error("confirm_booking error:", err);
+                sendWsMessage({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: callItemId,
+                    output: JSON.stringify({
+                      success: false,
+                      message:
+                        "Sorry, I was unable to confirm the booking right now. Let the customer know we will call them back to confirm.",
+                    }),
+                  },
+                });
+                sendWsMessage({
+                  type: "response.create",
+                  response: { modalities: ["text", "audio"] },
+                });
+              });
           }
           break;
         }
@@ -256,6 +353,8 @@ export function useVoiceSession() {
       micBufferRef.current = [];
       playbackQueueRef.current = [];
       playbackOffsetRef.current = 0;
+      workflowRunIdRef.current = null;
+      availableSlotsRef.current = [];
 
       // Start mic capture and token fetch in parallel (xAI best practice)
       const [stream, sessionRes] = await Promise.all([
@@ -425,6 +524,8 @@ export function useVoiceSession() {
     micBufferRef.current = [];
     playbackQueueRef.current = [];
     playbackOffsetRef.current = 0;
+    workflowRunIdRef.current = null;
+    availableSlotsRef.current = [];
 
     setCallState("ended");
   }, []);

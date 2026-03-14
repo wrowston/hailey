@@ -201,6 +201,48 @@ export default function CallSummary({
             </div>
           </motion.div>
 
+          {/* Booking Confirmation */}
+          {callData.booking && (
+            <motion.div
+              className="glass-card p-5 space-y-3 border border-green-500/20"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.45 }}
+            >
+              <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wider">
+                Appointment Scheduled
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-sm">Technician</span>
+                  <span className="text-white text-sm font-medium">
+                    {callData.booking.technicianName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-sm">Date</span>
+                  <span className="text-white text-sm font-medium">
+                    {new Date(callData.booking.date + "T00:00:00").toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      },
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 text-sm">Time</span>
+                  <span className="text-white text-sm font-medium">
+                    {callData.booking.displayStart} &ndash;{" "}
+                    {callData.booking.displayEnd}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Summary */}
           {callData.summary && (
             <motion.div
