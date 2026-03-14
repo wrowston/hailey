@@ -357,6 +357,7 @@ export const bookAppointmentTool = createTool({
       customerId: (serviceRequest?.customerId ?? ("" as never)) as never,
       customerName: customer?.name ?? "Unknown",
       customerPhone: customer?.phone ?? "",
+      customerEmail: customer?.email ?? undefined,
       customerAddress: customer?.address ?? "",
       technicianId: input.technicianId as never,
       technicianName: tech?.name ?? "Unknown",
@@ -453,7 +454,7 @@ Mr Wrench Plumbing & HVAC
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "Mr Wrench <onboarding@resend.dev>",
+        from: "Hailey HVAC <confirm@hvachailey.com>",
         to: [input.customerEmail],
         subject: `Appointment Confirmed – ${formattedDate} at ${input.displayStart}`,
         html: htmlBody,
