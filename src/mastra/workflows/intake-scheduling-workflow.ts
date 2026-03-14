@@ -6,6 +6,7 @@ import {
   bookAppointmentTool,
   findBumpableJobsTool,
   bumpAndRescheduleJobTool,
+  sendConfirmationEmailTool,
   availableSlotSchema,
 } from "../tools/scheduling-tools";
 
@@ -268,6 +269,10 @@ const bookAppointmentStep = createStep({
     displayEnd: z.string(),
     date: z.string(),
     wasAutoScheduled: z.boolean(),
+    customerId: z.string(),
+    customerName: z.string(),
+    customerEmail: z.string().optional(),
+    issueSummary: z.string(),
   }),
   execute: async ({ inputData }) => {
     const { selectedSlot } = inputData;
@@ -304,6 +309,10 @@ const bookAppointmentStep = createStep({
       displayEnd: selectedSlot.displayEnd,
       date: selectedSlot.date,
       wasAutoScheduled: inputData.wasAutoScheduled,
+      customerId: result.customerId,
+      customerName: result.customerName,
+      customerEmail: result.customerEmail,
+      issueSummary: result.issueSummary,
     };
 
     console.log("[workflow:book-appointment] Step complete", {
@@ -316,6 +325,72 @@ const bookAppointmentStep = createStep({
     });
 
     return output;
+  },
+});
+
+const sendConfirmationStep = createStep({
+  id: "send-confirmation",
+  description:
+    "Send a confirmation email to the customer with their appointment details",
+  inputSchema: z.object({
+    jobId: z.string(),
+    technicianName: z.string(),
+    scheduledStart: z.number(),
+    scheduledEnd: z.number(),
+    displayStart: z.string(),
+    displayEnd: z.string(),
+    date: z.string(),
+    customerId: z.string(),
+    customerName: z.string(),
+    customerEmail: z.string().optional(),
+    issueSummary: z.string(),
+  }),
+  outputSchema: z.object({
+    jobId: z.string(),
+    technicianName: z.string(),
+    scheduledStart: z.number(),
+    scheduledEnd: z.number(),
+    displayStart: z.string(),
+    displayEnd: z.string(),
+    date: z.string(),
+    emailSent: z.boolean(),
+  }),
+  execute: async ({ inputData }) => {
+    let emailSent = false;
+
+    if (inputData.customerEmail) {
+      const result = await sendConfirmationEmailTool.execute!({
+        customerId: inputData.customerId,
+        customerName: inputData.customerName,
+        customerEmail: inputData.customerEmail,
+        jobId: inputData.jobId,
+        technicianName: inputData.technicianName,
+        date: inputData.date,
+        displayStart: inputData.displayStart,
+        displayEnd: inputData.displayEnd,
+        issueSummary: inputData.issueSummary,
+      });
+
+      emailSent = result.emailSent;
+
+      console.log("[workflow:send-confirmation] Email result", {
+        emailSent: result.emailSent,
+        messageId: result.messageId,
+      });
+    } else {
+      console.log("[workflow:send-confirmation] No email on file — skipping");
+    }
+
+    return {
+      jobId: inputData.jobId,
+      technicianName: inputData.technicianName,
+      scheduledStart: inputData.scheduledStart,
+      scheduledEnd: inputData.scheduledEnd,
+      displayStart: inputData.displayStart,
+      displayEnd: inputData.displayEnd,
+      date: inputData.date,
+      emailSent,
+    };
   },
 });
 
@@ -341,10 +416,12 @@ export const intakeSchedulingWorkflow = createWorkflow({
     displayEnd: z.string(),
     date: z.string(),
     wasAutoScheduled: z.boolean(),
+    emailSent: z.boolean(),
   }),
 })
   .then(saveIntakeStep)
   .then(findAvailabilityStep)
   .then(awaitConfirmationStep)
   .then(bookAppointmentStep)
+  .then(sendConfirmationStep)
   .commit();
