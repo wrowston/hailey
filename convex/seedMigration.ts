@@ -770,6 +770,7 @@ export const run = internalMutation({
       customerId: typeof margaret;
       customerName: string;
       customerPhone: string;
+      customerEmail?: string;
       customerAddress: string;
       technicianId: typeof mike;
       technicianName: string;
@@ -787,6 +788,7 @@ export const run = internalMutation({
         customerId: carlos,
         customerName: "Carlos Mendez",
         customerPhone: "(801) 555-0823",
+        customerEmail: "carlos.mendez@gmail.com",
         customerAddress: "3410 Traverse Mountain Blvd, Lehi, UT 84043",
         technicianId: techSarah,
         technicianName: "Chance Robertson",
@@ -836,6 +838,7 @@ export const run = internalMutation({
         customerId: margaret,
         customerName: "Margaret Chen",
         customerPhone: "(801) 555-0142",
+        customerEmail: "margaret.chen@email.com",
         customerAddress: "4821 Ridgeview Dr, Lehi, UT 84043",
         technicianId: mike,
         technicianName: "Will Rowston",
@@ -852,6 +855,7 @@ export const run = internalMutation({
         customerId: david,
         customerName: "David Okonkwo",
         customerPhone: "(801) 555-0287",
+        customerEmail: "david.o@email.com",
         customerAddress: "1130 Elm Creek Blvd, Draper, UT 84020",
         technicianId: techSarah,
         technicianName: "Chance Robertson",
@@ -900,6 +904,7 @@ export const run = internalMutation({
         customerId: kwame,
         customerName: "Kwame Asante",
         customerPhone: "(801) 555-1034",
+        customerEmail: "kwame@slctech.co",
         customerAddress: "1900 S Highland Dr, Suite 200, Salt Lake City, UT 84106",
         technicianId: angela,
         technicianName: "Angela Washington",
@@ -917,6 +922,7 @@ export const run = internalMutation({
         customerId: tom,
         customerName: "Tom & Rachel Winters",
         customerPhone: "(801) 555-1298",
+        customerEmail: "winters.family@email.com",
         customerAddress: "4102 Thanksgiving Way, Lehi, UT 84043",
         technicianId: mike,
         technicianName: "Will Rowston",
@@ -949,6 +955,7 @@ export const run = internalMutation({
         customerId: james,
         customerName: "James Whitfield",
         customerPhone: "(801) 555-1587",
+        customerEmail: "jwhitfield@whitfieldlaw.com",
         customerAddress: "1215 E 200 S, Salt Lake City, UT 84102",
         technicianId: angela,
         technicianName: "Angela Washington",
@@ -965,6 +972,7 @@ export const run = internalMutation({
         customerId: sarah,
         customerName: "Sarah Mitchell",
         customerPhone: "(801) 555-0674",
+        customerEmail: "smitchell@mitchellproperties.com",
         customerAddress: "5567 State St, Salt Lake City, UT 84107",
         technicianId: angela,
         technicianName: "Angela Washington",
@@ -998,6 +1006,7 @@ export const run = internalMutation({
         customerId: carlos,
         customerName: "Carlos Mendez",
         customerPhone: "(801) 555-0823",
+        customerEmail: "carlos.mendez@gmail.com",
         customerAddress: "3410 Traverse Mountain Blvd, Lehi, UT 84043",
         technicianId: luis,
         technicianName: "Malik Gore",
@@ -1031,6 +1040,7 @@ export const run = internalMutation({
         customerId: david,
         customerName: "David Okonkwo",
         customerPhone: "(801) 555-0287",
+        customerEmail: "david.o@email.com",
         customerAddress: "1130 Elm Creek Blvd, Draper, UT 84020",
         technicianId: derek,
         technicianName: "Derek Huang",
@@ -1063,6 +1073,7 @@ export const run = internalMutation({
         customerId: kwame,
         customerName: "Kwame Asante",
         customerPhone: "(801) 555-1034",
+        customerEmail: "kwame@slctech.co",
         customerAddress: "1900 S Highland Dr, Suite 200, Salt Lake City, UT 84106",
         technicianId: nina,
         technicianName: "Nina Kowalski",
@@ -1096,6 +1107,7 @@ export const run = internalMutation({
         customerId: james,
         customerName: "James Whitfield",
         customerPhone: "(801) 555-1587",
+        customerEmail: "jwhitfield@whitfieldlaw.com",
         customerAddress: "1215 E 200 S, Salt Lake City, UT 84102",
         technicianId: angela,
         technicianName: "Angela Washington",

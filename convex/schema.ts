@@ -159,6 +159,7 @@ export default defineSchema({
     customerId: v.id("customers"),
     customerName: v.string(),
     customerPhone: v.string(),
+    customerEmail: v.optional(v.string()),
     customerAddress: v.string(),
     technicianId: v.id("technicians"),
     technicianName: v.string(),
