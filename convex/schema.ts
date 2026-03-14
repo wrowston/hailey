@@ -27,6 +27,7 @@ export default defineSchema({
   customers: defineTable({
     name: v.string(),
     phone: v.string(),
+    email: v.optional(v.string()),
     address: v.string(),
     vipStatus: v.boolean(),
     maintenanceMember: v.boolean(),

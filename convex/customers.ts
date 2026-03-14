@@ -29,6 +29,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     phone: v.string(),
+    email: v.optional(v.string()),
     address: v.string(),
     vipStatus: v.boolean(),
     maintenanceMember: v.boolean(),
@@ -40,5 +41,28 @@ export const create = mutation({
       ...args,
       createdAt: Date.now(),
     });
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("customers"),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    equipmentSummary: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...fields } = args;
+    const patch: Record<string, string> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) patch[key] = value;
+    }
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(id, patch);
+    }
+    return await ctx.db.get(id);
   },
 });
