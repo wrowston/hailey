@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
 import CallCard from "@/components/CallCard";
+import ServiceCalendar from "@/components/ServiceCalendar";
 import UrgencyGauge from "@/components/UrgencyGauge";
 import Link from "next/link";
 import { getUrgencyColor } from "@/components/UrgencyGauge";
@@ -24,6 +25,7 @@ interface Call {
 
 export default function DashboardPage() {
   const [calls, setCalls] = useState<Call[]>([]);
+  const [scheduledCount, setScheduledCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchCalls = useCallback(async () => {
@@ -38,12 +40,25 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchScheduledCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/scheduled-services");
+      const data = await res.json();
+      setScheduledCount((data.services || []).length);
+    } catch {
+      // non-critical
+    }
+  }, []);
+
   useEffect(() => {
     fetchCalls();
-    // Poll for updates every 5 seconds
-    const interval = setInterval(fetchCalls, 5000);
+    fetchScheduledCount();
+    const interval = setInterval(() => {
+      fetchCalls();
+      fetchScheduledCount();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [fetchCalls]);
+  }, [fetchCalls, fetchScheduledCount]);
 
   const avgUrgency =
     calls.length > 0
@@ -108,7 +123,7 @@ export default function DashboardPage() {
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           {/* Total Calls */}
           <motion.div
             className="glass-card p-5"
@@ -189,6 +204,26 @@ export default function DashboardPage() {
               {highUrgencyCalls}
             </motion.p>
           </motion.div>
+
+          {/* Scheduled */}
+          <motion.div
+            className="glass-card p-5"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
+              Scheduled
+            </p>
+            <motion.p
+              className="text-3xl font-bold text-cyan-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              {scheduledCount}
+            </motion.p>
+          </motion.div>
         </div>
 
         {/* Urgency Distribution (if enough calls) */}
@@ -202,23 +237,23 @@ export default function DashboardPage() {
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
               Urgency Distribution
             </h3>
-            <div className="flex items-end justify-center gap-4 h-24">
+            <div className="flex items-end gap-1 h-32 overflow-x-auto overflow-y-hidden pb-1">
               {calls.map((call, i) => (
                 <motion.div
                   key={call.id}
-                  className="flex flex-col items-center gap-1"
+                  className="flex flex-col items-center gap-1 shrink-0"
                   initial={{ opacity: 0, scaleY: 0 }}
                   animate={{ opacity: 1, scaleY: 1 }}
-                  transition={{ delay: 0.6 + i * 0.1 }}
+                  transition={{ delay: 0.6 + i * 0.05 }}
                   style={{ transformOrigin: "bottom" }}
                 >
                   <span className="text-[9px] text-gray-500">
                     {call.urgency_score}
                   </span>
                   <div
-                    className="w-8 rounded-t-md"
+                    className="w-6 min-w-[24px] rounded-t-md"
                     style={{
-                      height: `${(call.urgency_score / 10) * 80}px`,
+                      height: `${(call.urgency_score / 10) * 100}px`,
                       backgroundColor: getUrgencyColor(call.urgency_score),
                       opacity: 0.7,
                     }}
@@ -228,6 +263,11 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Service Calendar */}
+        <div className="mb-8">
+          <ServiceCalendar />
+        </div>
 
         {/* Call List */}
         <div className="space-y-4">
