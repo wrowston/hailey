@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       if (phone) {
         const lookupResult = await lookupCustomerTool.execute!({
           phone,
-        });
-        if (lookupResult && lookupResult.found && lookupResult.customer) {
+        }, {} as any);
+        if (lookupResult && "found" in lookupResult && lookupResult.found && lookupResult.customer) {
           existingCustomerId = lookupResult.customer.id;
         }
       }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         urgency: data.urgency,
         urgencyScore: data.urgency_score,
         likelyJobType: data.likely_job_type,
-      });
+      }, {} as any);
 
       return NextResponse.json(result);
     }

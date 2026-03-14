@@ -8,6 +8,8 @@ import {
   bumpAndRescheduleJobTool,
   sendConfirmationEmailTool,
   availableSlotSchema,
+  type AvailableSlot,
+  type BumpableJob,
 } from "../tools/scheduling-tools";
 
 const saveIntakeStep = createStep({
@@ -36,15 +38,15 @@ const saveIntakeStep = createStep({
     let existingCustomerId: string | undefined;
 
     if (inputData.phone) {
-      const lookup = await lookupCustomerTool.execute!({
+      const lookup = (await lookupCustomerTool.execute!({
         phone: inputData.phone,
-      });
+      }, {} as any)) as { found: boolean; customer: { id: string } | null };
       if (lookup?.found && lookup.customer) {
         existingCustomerId = lookup.customer.id;
       }
     }
 
-    const result = await saveIntakeTool.execute!({
+    const result = (await saveIntakeTool.execute!({
       existingCustomerId,
       name: inputData.name,
       phone: inputData.phone,
@@ -55,7 +57,7 @@ const saveIntakeStep = createStep({
       urgency: inputData.urgency,
       urgencyScore: inputData.urgencyScore,
       likelyJobType: inputData.likelyJobType,
-    });
+    }, {} as any)) as { customerId: string; serviceRequestId: string; isReturningCustomer: boolean };
 
     const output = {
       customerId: result.customerId,
@@ -95,10 +97,10 @@ const findAvailabilityStep = createStep({
     bumpedJobId: z.string().optional(),
   }),
   execute: async ({ inputData }) => {
-    const result = await checkAvailabilityTool.execute!({
+    const result = (await checkAvailabilityTool.execute!({
       likelyJobType: inputData.likelyJobType,
       urgency: inputData.urgency,
-    });
+    }, {} as any)) as { availableSlots: AvailableSlot[] };
 
     let slots = result.availableSlots;
     let isEmergencyAutoScheduled = false;
@@ -115,17 +117,17 @@ const findAvailabilityStep = createStep({
           "[workflow:find-availability] Emergency with no open slots — searching for bumpable routine checkups",
         );
 
-        const bumpResult = await findBumpableJobsTool.execute!({
+        const bumpResult = (await findBumpableJobsTool.execute!({
           likelyJobType: inputData.likelyJobType,
-        });
+        }, {} as any)) as { bumpableJobs: BumpableJob[] };
 
         if (bumpResult.bumpableJobs.length > 0) {
           const target = bumpResult.bumpableJobs[0]!;
 
-          const bumpExec = await bumpAndRescheduleJobTool.execute!({
+          const bumpExec = (await bumpAndRescheduleJobTool.execute!({
             bumpJobId: target.jobId,
             emergencyServiceRequestId: inputData.serviceRequestId,
-          });
+          }, {} as any)) as { success: boolean; freedSlot?: AvailableSlot; bumpedJobId?: string };
 
           if (bumpExec.success && bumpExec.freedSlot) {
             slots = [bumpExec.freedSlot];
@@ -277,14 +279,14 @@ const bookAppointmentStep = createStep({
   execute: async ({ inputData }) => {
     const { selectedSlot } = inputData;
 
-    const result = await bookAppointmentTool.execute!({
+    const result = (await bookAppointmentTool.execute!({
       serviceRequestId: inputData.serviceRequestId,
       technicianId: selectedSlot.technicianId,
       startTime: selectedSlot.startTime,
       endTime: selectedSlot.endTime,
       urgency: inputData.urgency,
       jobType: inputData.likelyJobType,
-    });
+    }, {} as any)) as { jobId: string; technicianName: string; scheduledStart: number; scheduledEnd: number; customerId: string; customerName: string; customerEmail?: string; issueSummary: string };
 
     if (inputData.bumpedJobId) {
       const convexClient = (await import("../../lib/convex")).default;
@@ -359,7 +361,7 @@ const sendConfirmationStep = createStep({
     let emailSent = false;
 
     if (inputData.customerEmail) {
-      const result = await sendConfirmationEmailTool.execute!({
+      const result = (await sendConfirmationEmailTool.execute!({
         customerId: inputData.customerId,
         customerName: inputData.customerName,
         customerEmail: inputData.customerEmail,
@@ -369,7 +371,7 @@ const sendConfirmationStep = createStep({
         displayStart: inputData.displayStart,
         displayEnd: inputData.displayEnd,
         issueSummary: inputData.issueSummary,
-      });
+      }, {} as any)) as { emailSent: boolean; messageId?: string };
 
       emailSent = result.emailSent;
 
