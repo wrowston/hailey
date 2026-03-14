@@ -13,7 +13,7 @@ export const mastra = new Mastra({
   workflows: { intakeSchedulingWorkflow },
   storage: new ConvexStore({
     id: 'convex-storage',
-    deploymentUrl: process.env.CONVEX_URL!,
+    deploymentUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
     adminAuthToken: process.env.CONVEX_ADMIN_KEY!,
   }),
   logger: new PinoLogger({
