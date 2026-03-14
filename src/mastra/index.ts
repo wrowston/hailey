@@ -3,14 +3,11 @@ import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { ConvexStore } from '@mastra/convex';
 import { Observability, CloudExporter, SensitiveDataFilter } from '@mastra/observability';
-import { weatherWorkflow } from './workflows/weather-workflow';
-import { weatherAgent } from './agents/weather-agent';
 import { intakeAgent } from './agents/intake-agent';
 
 
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
-  agents: { weatherAgent, intakeAgent },
+  agents: { intakeAgent },
   storage: new ConvexStore({
     id: 'convex-storage',
     deploymentUrl: process.env.CONVEX_URL!,
