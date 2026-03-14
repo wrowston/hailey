@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { XAI_SESSION_CONFIG } from "@/lib/agent-config";
+import { XAI_SESSION_CONFIG, buildSystemPrompt, CustomerContext } from "@/lib/agent-config";
 
 export interface TranscriptEntry {
   role: "user" | "agent";
@@ -341,7 +341,7 @@ export function useVoiceSession() {
     [sendWsMessage]
   );
 
-  const startCall = useCallback(async () => {
+  const startCall = useCallback(async (callerPhone?: string) => {
     try {
       setError(null);
       const id = uuidv4();
@@ -356,13 +356,31 @@ export function useVoiceSession() {
       workflowRunIdRef.current = null;
       availableSlotsRef.current = [];
 
-      // Start mic capture and token fetch in parallel (xAI best practice)
+      // Look up customer by phone if provided, in parallel with mic/token
+      let customerContext: CustomerContext | null = null;
+      const customerLookup = callerPhone
+        ? fetch("/api/customer-lookup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: callerPhone }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.found) {
+                customerContext = data.customer;
+              }
+            })
+            .catch((err) => console.error("Customer lookup failed:", err))
+        : Promise.resolve();
+
+      // Start mic capture, token fetch, and customer lookup in parallel
       const [stream, sessionRes] = await Promise.all([
         navigator.mediaDevices.getUserMedia({ audio: true }),
         new Promise<void>((resolve) => setTimeout(resolve, 3000)).then(() => {
           setCallState("connecting");
           return fetch("/api/session", { method: "POST" });
         }),
+        customerLookup,
       ]);
 
       streamRef.current = stream;
@@ -463,10 +481,17 @@ export function useVoiceSession() {
 
       ws.onopen = () => {
         console.log("WebSocket connected to xAI Voice Agent API");
+        const sessionConfig = {
+          ...XAI_SESSION_CONFIG,
+          instructions: buildSystemPrompt(customerContext),
+        };
+        if (customerContext) {
+          console.log(`Returning customer detected: ${customerContext.name}`);
+        }
         ws.send(
           JSON.stringify({
             type: "session.update",
-            session: XAI_SESSION_CONFIG,
+            session: sessionConfig,
           })
         );
       };

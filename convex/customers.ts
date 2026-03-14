@@ -25,6 +25,18 @@ export const getByPhone = query({
   },
 });
 
+export const getByPhoneNormalized = query({
+  args: { digits: v.string() },
+  handler: async (ctx, args) => {
+    const customers = await ctx.db.query("customers").collect();
+    return (
+      customers.find(
+        (c) => c.phone.replace(/\D/g, "") === args.digits,
+      ) ?? null
+    );
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),

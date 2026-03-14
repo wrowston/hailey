@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 import PhoneRinging from "./PhoneRinging";
@@ -7,7 +8,16 @@ import ActiveCall from "./ActiveCall";
 import CallSummary from "./CallSummary";
 import Link from "next/link";
 
+function formatPhoneDisplay(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export default function CallScreen() {
+  const [callerPhone, setCallerPhone] = useState("");
+
   const {
     callState,
     transcript,
@@ -19,6 +29,16 @@ export default function CallScreen() {
     endCall,
     resetCall,
   } = useVoiceSession();
+
+  const handleStartCall = () => {
+    const digits = callerPhone.replace(/\D/g, "");
+    startCall(digits || undefined);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setCallerPhone(formatPhoneDisplay(raw));
+  };
 
   return (
     <div className="min-h-screen bg-mesh flex flex-col">
@@ -95,14 +115,45 @@ export default function CallScreen() {
                   🔧 Mr Wrench
                 </h2>
                 <p className="text-gray-400 max-w-sm">
-                  Click below to call Mr Wrench Plumbing & HVAC. Our AI agent
-                  will take your call, understand your issue, and get a technician on the way.
+                  Enter a caller&apos;s phone number to simulate an incoming call. If the number matches an existing customer, the agent will recognize them.
+                </p>
+              </div>
+
+              {/* Phone input */}
+              <div className="w-full max-w-xs space-y-2">
+                <label
+                  htmlFor="caller-phone"
+                  className="block text-xs font-medium text-gray-400 uppercase tracking-wider"
+                >
+                  Caller Phone Number
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="caller-phone"
+                    type="tel"
+                    value={callerPhone}
+                    onChange={handlePhoneChange}
+                    placeholder="(555) 123-4567"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 text-lg tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  Leave blank to simulate a call from an unknown number
                 </p>
               </div>
 
               {/* Generate Call button */}
               <motion.button
-                onClick={startCall}
+                onClick={handleStartCall}
                 className="relative group px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg overflow-hidden"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
