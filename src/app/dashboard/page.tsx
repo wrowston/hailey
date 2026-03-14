@@ -9,17 +9,17 @@ import { getUrgencyColor } from "@/components/UrgencyGauge";
 
 interface Call {
   id: string;
+  name: string | null;
   phone_number: string | null;
   email: string | null;
-  issue: string | null;
-  urgency_score: number | null;
-  urgency_reason: string | null;
-  summary: string | null;
-  transcript: string | null;
+  address: string | null;
+  issue: string;
+  urgency: "emergency" | "urgent" | "routine";
+  urgency_score: number;
+  likely_job_type: string;
+  notes: string | null;
   status: string;
-  started_at: string;
-  ended_at: string | null;
-  created_at: string;
+  created_at: number;
 }
 
 export default function DashboardPage() {
@@ -45,20 +45,16 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchCalls]);
 
-  const completedCalls = calls.filter((c) => c.status === "completed");
   const avgUrgency =
-    completedCalls.length > 0
+    calls.length > 0
       ? Math.round(
-          (completedCalls.reduce(
-            (sum, c) => sum + (c.urgency_score || 0),
-            0
-          ) /
-            completedCalls.length) *
+          (calls.reduce((sum, c) => sum + c.urgency_score, 0) / calls.length) *
             10
         ) / 10
       : 0;
-  const highUrgencyCalls = completedCalls.filter(
-    (c) => (c.urgency_score || 0) >= 7
+  const highUrgencyCalls = calls.filter((c) => c.urgency_score >= 7).length;
+  const emergencyCalls = calls.filter(
+    (c) => c.urgency === "emergency"
   ).length;
 
   return (
@@ -133,7 +129,7 @@ export default function DashboardPage() {
             </motion.p>
           </motion.div>
 
-          {/* Completed */}
+          {/* Emergency */}
           <motion.div
             className="glass-card p-5"
             initial={{ opacity: 0, y: 20 }}
@@ -141,15 +137,15 @@ export default function DashboardPage() {
             transition={{ delay: 0.2 }}
           >
             <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
-              Completed
+              Emergency
             </p>
             <motion.p
-              className="text-3xl font-bold text-green-400"
+              className="text-3xl font-bold text-red-400"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              {completedCalls.length}
+              {emergencyCalls}
             </motion.p>
           </motion.div>
 
@@ -196,7 +192,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Urgency Distribution (if enough calls) */}
-        {completedCalls.length > 0 && (
+        {calls.length > 0 && (
           <motion.div
             className="glass-card p-5 mb-8"
             initial={{ opacity: 0, y: 20 }}
@@ -207,7 +203,7 @@ export default function DashboardPage() {
               Urgency Distribution
             </h3>
             <div className="flex items-end justify-center gap-4 h-24">
-              {completedCalls.map((call, i) => (
+              {calls.map((call, i) => (
                 <motion.div
                   key={call.id}
                   className="flex flex-col items-center gap-1"
@@ -222,10 +218,8 @@ export default function DashboardPage() {
                   <div
                     className="w-8 rounded-t-md"
                     style={{
-                      height: `${((call.urgency_score || 1) / 10) * 80}px`,
-                      backgroundColor: getUrgencyColor(
-                        call.urgency_score || 0
-                      ),
+                      height: `${(call.urgency_score / 10) * 80}px`,
+                      backgroundColor: getUrgencyColor(call.urgency_score),
                       opacity: 0.7,
                     }}
                   />
@@ -238,7 +232,7 @@ export default function DashboardPage() {
         {/* Call List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Call History</h2>
+            <h2 className="text-lg font-semibold text-white">Service Requests</h2>
             <button
               onClick={fetchCalls}
               className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"

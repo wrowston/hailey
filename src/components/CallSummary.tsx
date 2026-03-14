@@ -81,6 +81,31 @@ export default function CallSummary({
             </h3>
 
             <div className="space-y-3">
+              {/* Name */}
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 text-green-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    Name
+                  </p>
+                  <p className="text-white font-medium">
+                    {callData.name || "Not provided"}
+                  </p>
+                </div>
+              </div>
+
               {/* Phone */}
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
@@ -120,6 +145,31 @@ export default function CallSummary({
                   </p>
                   <p className="text-white font-medium">
                     {callData.email || "Not provided"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 text-blue-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    Address
+                  </p>
+                  <p className="text-white font-medium">
+                    {callData.address || "Not provided"}
                   </p>
                 </div>
               </div>

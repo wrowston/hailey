@@ -12,11 +12,34 @@ export async function GET() {
       api.serviceRequests.list,
       {},
     );
-    return NextResponse.json({ serviceRequests });
+
+    const calls = await Promise.all(
+      serviceRequests.map(async (sr) => {
+        const customer = await convexClient.query(api.customers.getById, {
+          id: sr.customerId,
+        });
+        return {
+          id: sr._id,
+          name: customer?.name ?? null,
+          phone_number: customer?.phone ?? null,
+          email: customer?.email ?? null,
+          address: customer?.address ?? null,
+          issue: sr.issueSummary,
+          urgency: sr.urgency,
+          urgency_score: sr.urgencyScore,
+          likely_job_type: sr.likelyJobType,
+          notes: sr.notes ?? null,
+          status: sr.status,
+          created_at: sr.createdAt,
+        };
+      }),
+    );
+
+    return NextResponse.json({ calls });
   } catch (error) {
-    console.error("Error fetching service requests:", error);
+    console.error("Error fetching calls:", error);
     return NextResponse.json(
-      { error: "Failed to fetch service requests" },
+      { error: "Failed to fetch calls" },
       { status: 500 },
     );
   }

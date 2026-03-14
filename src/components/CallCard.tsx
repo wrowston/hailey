@@ -7,25 +7,35 @@ import { useState } from "react";
 interface CallCardProps {
   call: {
     id: string;
+    name: string | null;
     phone_number: string | null;
     email: string | null;
-    issue: string | null;
-    urgency_score: number | null;
-    urgency_reason: string | null;
-    summary: string | null;
-    transcript: string | null;
+    address: string | null;
+    issue: string;
+    urgency: "emergency" | "urgent" | "routine";
+    urgency_score: number;
+    likely_job_type: string;
+    notes: string | null;
     status: string;
-    started_at: string;
-    ended_at: string | null;
+    created_at: number;
   };
   index: number;
 }
 
+const urgencyBadgeStyles = {
+  emergency:
+    "bg-red-500/10 text-red-400 border border-red-500/20",
+  urgent:
+    "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  routine:
+    "bg-green-500/10 text-green-400 border border-green-500/20",
+};
+
 export default function CallCard({ call, index }: CallCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
     return date.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -33,25 +43,6 @@ export default function CallCard({ call, index }: CallCardProps) {
       minute: "2-digit",
     });
   };
-
-  const getDuration = () => {
-    if (!call.started_at || !call.ended_at) return "—";
-    const start = new Date(call.started_at).getTime();
-    const end = new Date(call.ended_at).getTime();
-    const seconds = Math.floor((end - start) / 1000);
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${s}s`;
-  };
-
-  let parsedTranscript: { role: string; text: string }[] = [];
-  if (call.transcript) {
-    try {
-      parsedTranscript = JSON.parse(call.transcript);
-    } catch {
-      // ignore
-    }
-  }
 
   return (
     <motion.div
@@ -63,28 +54,28 @@ export default function CallCard({ call, index }: CallCardProps) {
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="p-5">
-        {/* Top row: urgency + date */}
+        {/* Top row: urgency + status + date */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <UrgencyGauge
-              score={call.urgency_score || 0}
+              score={call.urgency_score}
               size="sm"
               showLabel={false}
             />
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    call.status === "completed"
-                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                      : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                  }`}
+                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${urgencyBadgeStyles[call.urgency]}`}
                 >
-                  {call.status === "completed" ? "Completed" : "In Progress"}
+                  {call.urgency.charAt(0).toUpperCase() +
+                    call.urgency.slice(1)}
+                </span>
+                <span className="text-xs text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
+                  {call.likely_job_type}
                 </span>
               </div>
               <p className="text-gray-500 text-xs mt-1">
-                {formatDate(call.started_at)} • {getDuration()}
+                {formatDate(call.created_at)}
               </p>
             </div>
           </div>
@@ -103,14 +94,26 @@ export default function CallCard({ call, index }: CallCardProps) {
         </div>
 
         {/* Issue summary */}
-        {call.issue && (
-          <p className="text-gray-200 text-sm mb-3 line-clamp-2">
-            {call.issue}
-          </p>
-        )}
+        <p className="text-gray-200 text-sm mb-3 line-clamp-2">{call.issue}</p>
 
         {/* Contact info pills */}
         <div className="flex flex-wrap gap-2">
+          {call.name && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-xs text-gray-300 border border-white/5">
+              <svg
+                className="w-3 h-3 text-green-400"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {call.name}
+            </span>
+          )}
           {call.phone_number && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-xs text-gray-300 border border-white/5">
               <svg
@@ -150,63 +153,41 @@ export default function CallCard({ call, index }: CallCardProps) {
         className="overflow-hidden"
       >
         <div className="px-5 pb-5 space-y-4 border-t border-white/5 pt-4">
-          {/* Summary */}
-          {call.summary && (
+          {/* Address */}
+          {call.address && (
             <div>
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
-                Summary
+                Address
               </h4>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                {call.summary}
+              <p className="text-gray-300 text-sm">{call.address}</p>
+            </div>
+          )}
+
+          {/* Notes (summary + urgency reason) */}
+          {call.notes && (
+            <div>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+                Notes
+              </h4>
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
+                {call.notes}
               </p>
             </div>
           )}
 
-          {/* Urgency reason */}
-          {call.urgency_reason && (
-            <div>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
-                Urgency Assessment
-              </h4>
-              <p className="text-gray-300 text-sm">{call.urgency_reason}</p>
-            </div>
-          )}
+          {/* Status */}
+          <div className="flex items-center gap-2">
+            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+              Status
+            </h4>
+            <span className="text-xs text-gray-400">
+              {call.status.replace("_", " ")}
+            </span>
+          </div>
 
-          {/* Transcript */}
-          {parsedTranscript.length > 0 && (
-            <div>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                Transcript ({parsedTranscript.length} messages)
-              </h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {parsedTranscript.map((entry, i) => (
-                  <div
-                    key={i}
-                    className={`text-xs px-3 py-2 rounded-lg ${
-                      entry.role === "user"
-                        ? "bg-cyan-500/10 text-cyan-200 ml-8"
-                        : "bg-white/5 text-gray-300 mr-8"
-                    }`}
-                  >
-                    <span
-                      className={`font-semibold ${
-                        entry.role === "user"
-                          ? "text-cyan-400"
-                          : "text-purple-400"
-                      }`}
-                    >
-                      {entry.role === "user" ? "Caller" : "Agent"}:
-                    </span>{" "}
-                    {entry.text}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Call ID */}
+          {/* ID */}
           <p className="text-[10px] text-gray-600 font-mono">
-            ID: {call.id.slice(0, 8)}...
+            ID: {call.id.slice(0, 12)}...
           </p>
         </div>
       </motion.div>
