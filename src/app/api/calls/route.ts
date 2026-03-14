@@ -59,9 +59,10 @@ export async function POST(request: NextRequest) {
       let existingCustomerId: string | undefined;
 
       if (phone) {
-        const lookupResult = await lookupCustomerTool.execute!({
-          phone,
-        }, {} as any);
+        const lookupResult = await lookupCustomerTool.execute!(
+          { phone },
+          {},
+        );
         if (lookupResult && "found" in lookupResult && lookupResult.found && lookupResult.customer) {
           existingCustomerId = lookupResult.customer.id;
         }
@@ -71,18 +72,21 @@ export async function POST(request: NextRequest) {
         .filter(Boolean)
         .join("\n\n");
 
-      const result = await saveIntakeTool.execute!({
-        existingCustomerId,
-        name: data.name,
-        phone: data.phone_number,
-        email: data.email,
-        address: data.address,
-        issueSummary: data.issue,
-        notes: notes || undefined,
-        urgency: data.urgency,
-        urgencyScore: data.urgency_score,
-        likelyJobType: data.likely_job_type,
-      }, {} as any);
+      const result = await saveIntakeTool.execute!(
+        {
+          existingCustomerId,
+          name: data.name,
+          phone: data.phone_number,
+          email: data.email,
+          address: data.address,
+          issueSummary: data.issue,
+          notes: notes || undefined,
+          urgency: data.urgency,
+          urgencyScore: data.urgency_score,
+          likelyJobType: data.likely_job_type,
+        },
+        {},
+      );
 
       return NextResponse.json(result);
     }
