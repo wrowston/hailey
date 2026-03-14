@@ -25,6 +25,14 @@ export const listAvailable = query({
   },
 });
 
+export const getOnCall = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("technicians").collect();
+    return all.find((t) => t.isOnCall === true && t.status !== "offline") ?? null;
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -38,6 +46,7 @@ export const create = mutation({
     ),
     territory: v.string(),
     reliabilityScore: v.number(),
+    isOnCall: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("technicians", {

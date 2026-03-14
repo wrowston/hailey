@@ -71,6 +71,29 @@ export const create = mutation({
   },
 });
 
+export const reschedule = mutation({
+  args: {
+    jobId: v.id("jobs"),
+    scheduledStart: v.number(),
+    scheduledEnd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("scheduledServices")
+      .withIndex("by_scheduledStart")
+      .collect();
+    const record = all.find(
+      (s) => s.jobId === args.jobId && s.status === "scheduled",
+    );
+    if (!record) throw new Error("Scheduled service not found for job");
+
+    await ctx.db.patch(record._id, {
+      scheduledStart: args.scheduledStart,
+      scheduledEnd: args.scheduledEnd,
+    });
+  },
+});
+
 export const updateStatus = mutation({
   args: {
     id: v.id("scheduledServices"),

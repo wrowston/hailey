@@ -4,6 +4,8 @@ import { lookupCustomerTool, saveIntakeTool } from "../tools/intake-tools";
 import {
   checkAvailabilityTool,
   bookAppointmentTool,
+  findBumpableJobsTool,
+  bumpAndRescheduleJobTool,
   sendConfirmationEmailTool,
   availableSlotSchema,
 } from "../tools/scheduling-tools";
@@ -76,7 +78,7 @@ const saveIntakeStep = createStep({
 const findAvailabilityStep = createStep({
   id: "find-availability",
   description:
-    "Query technician schedules and find open appointment windows",
+    "Query technician schedules and find open appointment windows. For emergencies, includes same-day slots and can bump routine checkups if needed.",
   inputSchema: z.object({
     customerId: z.string(),
     serviceRequestId: z.string(),
@@ -89,6 +91,8 @@ const findAvailabilityStep = createStep({
     urgency: z.enum(["emergency", "urgent", "routine"]),
     likelyJobType: z.string(),
     availableSlots: z.array(availableSlotSchema),
+    isEmergencyAutoScheduled: z.boolean(),
+    bumpedJobId: z.string().optional(),
   }),
   execute: async ({ inputData }) => {
     const result = await checkAvailabilityTool.execute!({
@@ -96,16 +100,70 @@ const findAvailabilityStep = createStep({
       urgency: inputData.urgency,
     });
 
+    let slots = result.availableSlots;
+    let isEmergencyAutoScheduled = false;
+    let bumpedJobId: string | undefined;
+
+    if (inputData.urgency === "emergency") {
+      const today = new Date().toISOString().split("T")[0];
+      const hasSameDaySlot = slots.some(
+        (s: { date: string }) => s.date === today,
+      );
+
+      if (!hasSameDaySlot && slots.length === 0) {
+        console.log(
+          "[workflow:find-availability] Emergency with no open slots — searching for bumpable routine checkups",
+        );
+
+        const bumpResult = await findBumpableJobsTool.execute!({
+          likelyJobType: inputData.likelyJobType,
+        });
+
+        if (bumpResult.bumpableJobs.length > 0) {
+          const target = bumpResult.bumpableJobs[0]!;
+
+          const bumpExec = await bumpAndRescheduleJobTool.execute!({
+            bumpJobId: target.jobId,
+            emergencyServiceRequestId: inputData.serviceRequestId,
+          });
+
+          if (bumpExec.success && bumpExec.freedSlot) {
+            slots = [bumpExec.freedSlot];
+            isEmergencyAutoScheduled = true;
+            bumpedJobId = bumpExec.bumpedJobId;
+
+            console.log(
+              "[workflow:find-availability] Emergency escalation — bumped routine checkup",
+              {
+                bumpedJobId: target.jobId,
+                freedSlot: bumpExec.freedSlot,
+              },
+            );
+          }
+        } else {
+          console.warn(
+            "[workflow:find-availability] Emergency but no bumpable routine checkups found — falling back to earliest available slot",
+          );
+        }
+      } else if (hasSameDaySlot) {
+        isEmergencyAutoScheduled = true;
+      }
+    }
+
     const output = {
       serviceRequestId: inputData.serviceRequestId,
       urgency: inputData.urgency,
       likelyJobType: inputData.likelyJobType,
-      availableSlots: result.availableSlots,
+      availableSlots: slots,
+      isEmergencyAutoScheduled,
+      bumpedJobId,
     };
 
     console.log("[workflow:find-availability] Step complete", {
       serviceRequestId: output.serviceRequestId,
       slotsFound: output.availableSlots.length,
+      isEmergencyAutoScheduled,
+      bumpedJobId,
     });
 
     return output;
@@ -115,18 +173,22 @@ const findAvailabilityStep = createStep({
 const awaitConfirmationStep = createStep({
   id: "await-confirmation",
   description:
-    "Suspend the workflow and wait for the customer to pick a time slot",
+    "For emergencies with a same-day slot, auto-select the earliest slot. Otherwise, suspend and wait for the customer to pick a time slot.",
   inputSchema: z.object({
     serviceRequestId: z.string(),
     urgency: z.enum(["emergency", "urgent", "routine"]),
     likelyJobType: z.string(),
     availableSlots: z.array(availableSlotSchema),
+    isEmergencyAutoScheduled: z.boolean(),
+    bumpedJobId: z.string().optional(),
   }),
   outputSchema: z.object({
     serviceRequestId: z.string(),
     urgency: z.enum(["emergency", "urgent", "routine"]),
     likelyJobType: z.string(),
     selectedSlot: availableSlotSchema,
+    wasAutoScheduled: z.boolean(),
+    bumpedJobId: z.string().optional(),
   }),
   resumeSchema: z.object({
     selectedSlot: availableSlotSchema,
@@ -135,11 +197,36 @@ const awaitConfirmationStep = createStep({
     availableSlots: z.array(availableSlotSchema),
   }),
   execute: async ({ inputData, resumeData, suspend }) => {
-    if (!resumeData?.selectedSlot) {
-      console.log("[workflow:await-confirmation] Suspending — waiting for customer slot selection", {
+    if (
+      inputData.isEmergencyAutoScheduled &&
+      inputData.availableSlots.length > 0
+    ) {
+      const earliest = inputData.availableSlots[0]!;
+      console.log(
+        "[workflow:await-confirmation] Emergency auto-scheduled — selecting earliest slot",
+        {
+          serviceRequestId: inputData.serviceRequestId,
+          selectedSlot: earliest,
+        },
+      );
+      return {
         serviceRequestId: inputData.serviceRequestId,
-        slotsOffered: inputData.availableSlots.length,
-      });
+        urgency: inputData.urgency,
+        likelyJobType: inputData.likelyJobType,
+        selectedSlot: earliest,
+        wasAutoScheduled: true,
+        bumpedJobId: inputData.bumpedJobId,
+      };
+    }
+
+    if (!resumeData?.selectedSlot) {
+      console.log(
+        "[workflow:await-confirmation] Suspending — waiting for customer slot selection",
+        {
+          serviceRequestId: inputData.serviceRequestId,
+          slotsOffered: inputData.availableSlots.length,
+        },
+      );
       return await suspend({
         availableSlots: inputData.availableSlots,
       });
@@ -155,6 +242,8 @@ const awaitConfirmationStep = createStep({
       urgency: inputData.urgency,
       likelyJobType: inputData.likelyJobType,
       selectedSlot: resumeData.selectedSlot,
+      wasAutoScheduled: false,
+      bumpedJobId: undefined,
     };
   },
 });
@@ -162,12 +251,14 @@ const awaitConfirmationStep = createStep({
 const bookAppointmentStep = createStep({
   id: "book-appointment",
   description:
-    "Create the job record and assign the technician for the confirmed slot",
+    "Create the job record and assign the technician for the confirmed slot. Links bumped jobs when an emergency displaced a routine checkup.",
   inputSchema: z.object({
     serviceRequestId: z.string(),
     urgency: z.enum(["emergency", "urgent", "routine"]),
     likelyJobType: z.string(),
     selectedSlot: availableSlotSchema,
+    wasAutoScheduled: z.boolean(),
+    bumpedJobId: z.string().optional(),
   }),
   outputSchema: z.object({
     jobId: z.string(),
@@ -177,6 +268,7 @@ const bookAppointmentStep = createStep({
     displayStart: z.string(),
     displayEnd: z.string(),
     date: z.string(),
+    wasAutoScheduled: z.boolean(),
     customerId: z.string(),
     customerName: z.string(),
     customerEmail: z.string().optional(),
@@ -194,6 +286,20 @@ const bookAppointmentStep = createStep({
       jobType: inputData.likelyJobType,
     });
 
+    if (inputData.bumpedJobId) {
+      const convexClient = (await import("../../lib/convex")).default;
+      const { api } = await import("../../../convex/_generated/api");
+      await convexClient.mutation(api.jobs.setBumpedBy, {
+        id: inputData.bumpedJobId as never,
+        bumpedByJobId: result.jobId as never,
+      });
+
+      console.log(
+        "[workflow:book-appointment] Linked bumped job to emergency",
+        { bumpedJobId: inputData.bumpedJobId, emergencyJobId: result.jobId },
+      );
+    }
+
     const output = {
       jobId: result.jobId,
       technicianName: result.technicianName,
@@ -202,6 +308,7 @@ const bookAppointmentStep = createStep({
       displayStart: selectedSlot.displayStart,
       displayEnd: selectedSlot.displayEnd,
       date: selectedSlot.date,
+      wasAutoScheduled: inputData.wasAutoScheduled,
       customerId: result.customerId,
       customerName: result.customerName,
       customerEmail: result.customerEmail,
@@ -214,6 +321,7 @@ const bookAppointmentStep = createStep({
       date: output.date,
       displayStart: output.displayStart,
       displayEnd: output.displayEnd,
+      wasAutoScheduled: output.wasAutoScheduled,
     });
 
     return output;
@@ -307,6 +415,7 @@ export const intakeSchedulingWorkflow = createWorkflow({
     displayStart: z.string(),
     displayEnd: z.string(),
     date: z.string(),
+    wasAutoScheduled: z.boolean(),
     emailSent: z.boolean(),
   }),
 })

@@ -51,6 +51,7 @@ export default defineSchema({
     territory: v.string(),
     currentJobId: v.optional(v.id("jobs")),
     reliabilityScore: v.number(),
+    isOnCall: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])

@@ -9,6 +9,15 @@ export interface CustomerContext {
   equipmentSummary: string | null;
 }
 
+function getTodayString(): string {
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 const BASE_RULES = `== CONVERSATION RULES (apply to every response) ==
 - STRICT: Ask only ONE question per response. Never bundle two questions together.
 - STRICT: Keep each response to 1-2 sentences. This is a phone call, not an email.
@@ -31,7 +40,10 @@ const BASE_RULES = `== CONVERSATION RULES (apply to every response) ==
 plumbing, drain cleaning, water heater, pipe repair, HVAC repair, HVAC maintenance, AC installation, furnace repair, sewer line, gas line, fixture installation`;
 
 function buildNewCustomerPrompt(): string {
-  return `You are Hailey, a friendly and professional customer service representative for Mr Wrench Plumbing and HVAC. You are on a phone call with a customer who just called in.
+  const today = getTodayString();
+  return `Today is ${today}. Use this as the current date for all scheduling. When presenting appointment times, use correct day names relative to today.
+
+You are Hailey, a friendly and professional customer service representative for Mr Wrench Plumbing and HVAC. You are on a phone call with a customer who just called in.
 
 Follow this conversation in strict order. Do NOT skip ahead or mix phases.
 
@@ -79,7 +91,10 @@ function buildReturningCustomerPrompt(customer: CustomerContext): string {
   if (customer.maintenanceMember) tags.push("MAINTENANCE PLAN MEMBER");
   const tagLine = tags.length > 0 ? ` [${tags.join(" • ")}]` : "";
 
-  return `You are Hailey, a friendly and professional customer service representative for Mr Wrench Plumbing and HVAC. You are on a phone call with a RETURNING customer who just called in.
+  const today = getTodayString();
+  return `Today is ${today}. Use this as the current date for all scheduling. When presenting appointment times, use correct day names relative to today.
+
+You are Hailey, a friendly and professional customer service representative for Mr Wrench Plumbing and HVAC. You are on a phone call with a RETURNING customer who just called in.
 
 == CUSTOMER ON FILE ==${tagLine}
 Name: ${customer.name}
@@ -131,7 +146,9 @@ export function buildSystemPrompt(customer?: CustomerContext | null): string {
   return buildNewCustomerPrompt();
 }
 
-export const AGENT_SYSTEM_PROMPT = buildNewCustomerPrompt();
+export function getAgentSystemPrompt(): string {
+  return buildNewCustomerPrompt();
+}
 
 export const REALTIME_TOOLS = [
   {
@@ -270,7 +287,7 @@ export const REALTIME_TOOLS = [
 
 export const XAI_SESSION_CONFIG = {
   voice: "Ara",
-  instructions: AGENT_SYSTEM_PROMPT,
+  instructions: "",
   turn_detection: {
     type: "server_vad" as const,
     threshold: 0.6,
