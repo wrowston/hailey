@@ -1,7 +1,10 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { Resend } from "resend";
 import convexClient from "../../lib/convex";
 import { api } from "../../../convex/_generated/api";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const BUSINESS_HOURS_START = 8;
 const BUSINESS_HOURS_END = 17;
@@ -211,6 +214,10 @@ export const bookAppointmentTool = createTool({
     technicianName: z.string(),
     scheduledStart: z.number(),
     scheduledEnd: z.number(),
+    customerId: z.string(),
+    customerName: z.string(),
+    customerEmail: z.string().optional(),
+    issueSummary: z.string(),
   }),
   execute: async (input) => {
     const tech = await convexClient.query(api.technicians.getById, {
@@ -264,6 +271,120 @@ export const bookAppointmentTool = createTool({
       technicianName: tech?.name ?? "Unknown",
       scheduledStart: input.startTime,
       scheduledEnd: input.endTime,
+      customerId: customer?._id ?? "",
+      customerName: customer?.name ?? "Unknown",
+      customerEmail: customer?.email ?? undefined,
+      issueSummary: serviceRequest?.issueSummary ?? "",
     };
+  },
+});
+
+export const sendConfirmationEmailTool = createTool({
+  id: "send-confirmation-email",
+  description:
+    "Send a booking confirmation email to the customer and log it to outgoing messages.",
+  inputSchema: z.object({
+    customerId: z.string().describe("Convex customer ID"),
+    customerName: z.string(),
+    customerEmail: z.string().describe("Customer email address"),
+    jobId: z.string().describe("Convex job ID"),
+    technicianName: z.string(),
+    date: z.string().describe("Appointment date (YYYY-MM-DD)"),
+    displayStart: z.string().describe("Human-readable start time"),
+    displayEnd: z.string().describe("Human-readable end time"),
+    issueSummary: z.string(),
+  }),
+  outputSchema: z.object({
+    emailSent: z.boolean(),
+    messageId: z.string().optional(),
+    outgoingMessageId: z.string().optional(),
+  }),
+  execute: async (input) => {
+    const formattedDate = new Date(input.date + "T00:00:00").toLocaleDateString(
+      "en-US",
+      { weekday: "long", month: "long", day: "numeric", year: "numeric" },
+    );
+
+    const htmlBody = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
+        <div style="background: #1e40af; padding: 32px; border-radius: 12px 12px 0 0;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">🔧 Mr Wrench Plumbing &amp; HVAC</h1>
+          <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 14px;">Appointment Confirmation</p>
+        </div>
+        <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
+          <p style="font-size: 16px; margin-top: 0;">Hi ${input.customerName},</p>
+          <p>Your appointment has been confirmed! Here are the details:</p>
+          <div style="background: #f0f9ff; border-left: 4px solid #1e40af; padding: 20px; border-radius: 0 8px 8px 0; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+              <tr><td style="padding: 6px 0; color: #6b7280; width: 120px;">Date</td><td style="padding: 6px 0; font-weight: 600;">${formattedDate}</td></tr>
+              <tr><td style="padding: 6px 0; color: #6b7280;">Time</td><td style="padding: 6px 0; font-weight: 600;">${input.displayStart} – ${input.displayEnd}</td></tr>
+              <tr><td style="padding: 6px 0; color: #6b7280;">Technician</td><td style="padding: 6px 0; font-weight: 600;">${input.technicianName}</td></tr>
+              <tr><td style="padding: 6px 0; color: #6b7280;">Service</td><td style="padding: 6px 0;">${input.issueSummary}</td></tr>
+            </table>
+          </div>
+          <p style="font-size: 14px; color: #6b7280;">Your technician will arrive within the scheduled time window. Please make sure someone is available to provide access to the service area.</p>
+          <p style="font-size: 14px; color: #6b7280;">Need to reschedule? Call us at <strong>(801) 555-0199</strong>.</p>
+        </div>
+        <div style="background: #f9fafb; padding: 20px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; text-align: center;">
+          <p style="font-size: 12px; color: #9ca3af; margin: 0;">Mr Wrench Plumbing &amp; HVAC · 1650 Digital Dr, Lehi, UT 84043</p>
+        </div>
+      </div>
+    `;
+
+    const textBody = `Hi ${input.customerName},
+
+Your appointment has been confirmed!
+
+Date: ${formattedDate}
+Time: ${input.displayStart} – ${input.displayEnd}
+Technician: ${input.technicianName}
+Service: ${input.issueSummary}
+
+Your technician will arrive within the scheduled time window. Please make sure someone is available to provide access to the service area.
+
+Need to reschedule? Call us at (801) 555-0199.
+
+Mr Wrench Plumbing & HVAC
+1650 Digital Dr, Lehi, UT 84043`;
+
+    let emailSent = false;
+    let messageId: string | undefined;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: "Mr Wrench <onboarding@resend.dev>",
+        to: [input.customerEmail],
+        subject: `Appointment Confirmed – ${formattedDate} at ${input.displayStart}`,
+        html: htmlBody,
+        text: textBody,
+      });
+
+      if (error) {
+        console.error("[send-confirmation-email] Resend error:", error);
+      } else {
+        emailSent = true;
+        messageId = data?.id;
+        console.log("[send-confirmation-email] Email sent:", messageId);
+      }
+    } catch (err) {
+      console.error("[send-confirmation-email] Failed to send:", err);
+    }
+
+    let outgoingMessageId: string | undefined;
+    try {
+      outgoingMessageId = await convexClient.mutation(
+        api.outgoingMessages.create,
+        {
+          customerId: input.customerId as never,
+          relatedJobId: input.jobId as never,
+          messageType: "dispatch_confirmation",
+          content: `Confirmation email ${emailSent ? "sent" : "failed"} to ${input.customerEmail}. Appointment: ${formattedDate} ${input.displayStart}–${input.displayEnd} with ${input.technicianName}.`,
+        },
+      );
+    } catch (err) {
+      console.error("[send-confirmation-email] Failed to log message:", err);
+    }
+
+    return { emailSent, messageId, outgoingMessageId };
   },
 });
