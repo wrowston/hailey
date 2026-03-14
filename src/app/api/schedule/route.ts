@@ -62,9 +62,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (result.status === "success") {
+        const output = result.result as Record<string, unknown> | undefined;
         return NextResponse.json({
           status: "success",
-          result: result.result,
+          result: output,
+          wasAutoScheduled: output?.wasAutoScheduled ?? false,
         });
       }
 

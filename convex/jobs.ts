@@ -148,6 +148,71 @@ export const markDelayed = mutation({
   },
 });
 
+const BUMPABLE_CATEGORIES = [
+  "hvac maintenance",
+  "routine maintenance",
+  "filter replacement",
+  "annual service",
+  "seasonal checkup",
+  "preventive maintenance",
+];
+
+export const listBumpableInRange = query({
+  args: {
+    rangeStart: v.number(),
+    rangeEnd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const jobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_priority", (q) => q.eq("priority", "routine"))
+      .collect();
+
+    return jobs
+      .filter(
+        (j) =>
+          j.status === "assigned" &&
+          j.scheduledEnd > args.rangeStart &&
+          j.scheduledStart < args.rangeEnd &&
+          BUMPABLE_CATEGORIES.includes(j.category.toLowerCase()),
+      )
+      .sort((a, b) => a.scheduledStart - b.scheduledStart);
+  },
+});
+
+export const rescheduleJob = mutation({
+  args: {
+    id: v.id("jobs"),
+    scheduledStart: v.number(),
+    scheduledEnd: v.number(),
+    bumpedByJobId: v.id("jobs"),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.id);
+    if (!job) throw new Error("Job not found");
+
+    await ctx.db.patch(args.id, {
+      scheduledStart: args.scheduledStart,
+      scheduledEnd: args.scheduledEnd,
+      bumpedByJobId: args.bumpedByJobId,
+      notes: args.notes ?? job.notes,
+    });
+  },
+});
+
+export const setBumpedBy = mutation({
+  args: {
+    id: v.id("jobs"),
+    bumpedByJobId: v.id("jobs"),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.id);
+    if (!job) throw new Error("Job not found");
+    await ctx.db.patch(args.id, { bumpedByJobId: args.bumpedByJobId });
+  },
+});
+
 export const completeJob = mutation({
   args: { id: v.id("jobs") },
   handler: async (ctx, args) => {

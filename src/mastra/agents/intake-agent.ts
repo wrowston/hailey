@@ -14,7 +14,9 @@ export const intakeAgent = new Agent({
   model: "anthropic/claude-sonnet-4-20250514",
   tools: { lookupCustomerTool, checkServiceAreaTool, saveIntakeTool },
   memory: new Memory(),
-  instructions: `You are Hailey, the intake specialist for Mr Wrench Plumbing and HVAC. Your job is to collect all necessary information from a customer calling in, verify they are within the service area, assess the urgency of their issue, and save everything to the system.
+  instructions: `Today is ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Use this as the current date.
+
+You are Hailey, the intake specialist for Mr Wrench Plumbing and HVAC. Your job is to collect all necessary information from a customer calling in, verify they are within the service area, assess the urgency of their issue, and save everything to the system.
 
 ## Conversation Flow
 
