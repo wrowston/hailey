@@ -306,7 +306,7 @@ export default function DashboardPage() {
 
       {/* Footer */}
       <footer className="text-center py-4 text-gray-600 text-xs border-t border-white/5 mt-8">
-        Built with Next.js • Mastra • OpenAI Realtime API
+        Built with Next.js • Mastra • xAI Voice Agent API
       </footer>
     </div>
   );

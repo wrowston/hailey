@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import WaveformVisualizer from "./WaveformVisualizer";
 import LiveTranscript from "./LiveTranscript";
-import { TranscriptEntry, CallData } from "@/hooks/useWebRTCSession";
+import { TranscriptEntry, CallData } from "@/hooks/useVoiceSession";
 
 interface ActiveCallProps {
   isAgentSpeaking: boolean;
@@ -83,7 +83,7 @@ export default function ActiveCall({
         </div>
 
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-white">Agent Alex</h3>
+          <h3 className="text-lg font-semibold text-white">Agent Hailey</h3>
           <p className="text-sm text-gray-400">🔧 Mr Wrench Plumbing & HVAC</p>
         </div>
 

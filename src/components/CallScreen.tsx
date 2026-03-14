@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useWebRTCSession } from "@/hooks/useWebRTCSession";
+import { useVoiceSession } from "@/hooks/useVoiceSession";
 import PhoneRinging from "./PhoneRinging";
 import ActiveCall from "./ActiveCall";
 import CallSummary from "./CallSummary";
@@ -18,7 +18,7 @@ export default function CallScreen() {
     startCall,
     endCall,
     resetCall,
-  } = useWebRTCSession();
+  } = useVoiceSession();
 
   return (
     <div className="min-h-screen bg-mesh flex flex-col">
@@ -234,7 +234,7 @@ export default function CallScreen() {
 
       {/* Footer */}
       <footer className="text-center py-4 text-gray-600 text-xs">
-        Built with Next.js • Mastra • OpenAI Realtime API
+        Built with Next.js • Mastra • xAI Voice Agent API
       </footer>
     </div>
   );

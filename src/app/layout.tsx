@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Mr Wrench Plumbing & HVAC | AI Phone Agent",
   description:
-    "Call Mr Wrench for plumbing and HVAC support. Real-time AI phone agent powered by OpenAI Realtime API.",
+    "Call Mr Wrench for plumbing and HVAC support. Real-time AI phone agent powered by xAI Voice Agent API.",
 };
 
 export default function RootLayout({

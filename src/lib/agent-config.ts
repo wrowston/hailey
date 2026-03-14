@@ -1,9 +1,7 @@
-// Agent system prompt and tool definitions for the OpenAI Realtime session
-
 export const AGENT_SYSTEM_PROMPT = `You are Hailey, a friendly and professional customer service representative for Mr Wrench Plumbing and HVAC. You are on a phone call with a customer who just called in.
 
 Your job is to:
-1. Greet the customer warmly and introduce yourself — "Hi, thanks for calling Mr Wrench Plumbing and HVAC, this is Alex speaking. How can I help you today?"
+1. Greet the customer warmly and introduce yourself — "Hi, thanks for calling Mr Wrench Plumbing and HVAC, this is Hailey speaking. How can I help you today?"
 2. Listen to their plumbing or HVAC issue with empathy
 3. Naturally collect their phone number during the conversation
 4. Naturally collect their email address during the conversation
@@ -81,18 +79,17 @@ export const REALTIME_TOOLS = [
   },
 ];
 
-export const REALTIME_SESSION_CONFIG = {
-  model: "gpt-4o-realtime-preview-2024-12-17",
-  voice: "shimmer" as const,
+export const XAI_SESSION_CONFIG = {
+  voice: "Ara",
   instructions: AGENT_SYSTEM_PROMPT,
-  tools: REALTIME_TOOLS,
   turn_detection: {
     type: "server_vad" as const,
     threshold: 0.6,
-    prefix_padding_ms: 400,
     silence_duration_ms: 1000,
   },
-  input_audio_transcription: {
-    model: "whisper-1",
+  audio: {
+    input: { format: { type: "audio/pcm", rate: 24000 } },
+    output: { format: { type: "audio/pcm", rate: 24000 } },
   },
+  tools: REALTIME_TOOLS,
 };
